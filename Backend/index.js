@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import authRoutes from "./LoginAuth/Login.js"; // your login file
 import { pool } from "./db.js";
+import createUserRoutes from "./routes/admin/createUser.js";
 dotenv.config();
 
 const app = express();
@@ -22,13 +23,14 @@ app.use(
 
 // 📌 Routes
 app.use("/auth", authRoutes);
+app.use("/createuser", createUserRoutes);
 // 🧪 Test route
 app.get("/", (req, res) => {
   res.send("API running");
 });
 
 // 🚀 Start server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

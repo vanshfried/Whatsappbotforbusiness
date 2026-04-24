@@ -20,16 +20,14 @@ function hashToken(token) {
 const FAKE_HASH =
   "$argon2id$v=19$m=65536,t=3,p=1$fakefakefake$fakefakefakefakefakefake";
 
-
 // 🔐 LOGIN
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const result = await pool.query(
-      "SELECT * FROM users WHERE email = $1",
-      [email]
-    );
+    const result = await pool.query("SELECT * FROM users WHERE email = $1", [
+      email,
+    ]);
 
     const user = result.rows[0];
 
@@ -47,7 +45,7 @@ router.post("/login", async (req, res) => {
 
         await pool.query(
           `UPDATE users SET login_attempts=$1, lock_until=$2 WHERE id=$3`,
-          [attempts, lockUntil, user.id]
+          [attempts, lockUntil, user.id],
         );
       }
 
@@ -65,24 +63,24 @@ router.post("/login", async (req, res) => {
 
     await pool.query(
       `UPDATE users SET login_attempts=0, lock_until=NULL WHERE id=$1`,
-      [user.id]
+      [user.id],
     );
 
     // 🔐 ACCESS TOKEN
     const accessToken = jwt.sign(
       { id: user.id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: ACCESS_TOKEN_EXPIRY }
+      { expiresIn: ACCESS_TOKEN_EXPIRY },
     );
 
     // 🔁 REFRESH TOKEN (raw + hashed)
     const refreshToken = crypto.randomBytes(40).toString("hex");
     const hashedToken = hashToken(refreshToken);
 
-    await pool.query(
-      `UPDATE users SET refresh_token=$1 WHERE id=$2`,
-      [hashedToken, user.id]
-    );
+    await pool.query(`UPDATE users SET refresh_token=$1 WHERE id=$2`, [
+      hashedToken,
+      user.id,
+    ]);
 
     // 🍪 cookies
     res.cookie("token", accessToken, {
@@ -109,7 +107,6 @@ router.post("/login", async (req, res) => {
   }
 });
 
-
 // 🔁 REFRESH ROUTE
 router.post("/refresh", async (req, res) => {
   const refreshToken = req.cookies.refresh_token;
@@ -121,8 +118,8 @@ router.post("/refresh", async (req, res) => {
   const hashedToken = hashToken(refreshToken);
 
   const result = await pool.query(
-    "SELECT * FROM users WHERE refresh_token=$1",
-    [hashedToken]
+    "SELECT * FROM users WHERE refresh_token=$1 OR previous_refresh_token=$1",
+    [hashedToken],
   );
 
   if (result.rows.length === 0) {
@@ -136,15 +133,18 @@ router.post("/refresh", async (req, res) => {
   const newHashed = hashToken(newRefreshToken);
 
   await pool.query(
-    `UPDATE users SET refresh_token=$1 WHERE id=$2`,
-    [newHashed, user.id]
+    `UPDATE users 
+   SET previous_refresh_token = refresh_token,
+       refresh_token = $1
+   WHERE id = $2`,
+    [newHashed, user.id],
   );
 
   // 🔐 new access token
   const newAccessToken = jwt.sign(
     { id: user.id, role: user.role },
     process.env.JWT_SECRET,
-    { expiresIn: ACCESS_TOKEN_EXPIRY }
+    { expiresIn: ACCESS_TOKEN_EXPIRY },
   );
 
   // 🍪 update cookies
@@ -162,9 +162,11 @@ router.post("/refresh", async (req, res) => {
     maxAge: REFRESH_TOKEN_EXPIRY,
   });
 
-  res.json({ message: "Token refreshed" });
+  res.json({
+    message: "Token refreshed",
+    role: user.role,
+  });
 });
-
 
 // 🔓 LOGOUT
 router.post("/logout", async (req, res) => {
@@ -175,7 +177,7 @@ router.post("/logout", async (req, res) => {
 
     await pool.query(
       `UPDATE users SET refresh_token=NULL WHERE refresh_token=$1`,
-      [hashedToken]
+      [hashedToken],
     );
   }
 
