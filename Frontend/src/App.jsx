@@ -4,6 +4,9 @@ import Login from "./Login/Login";
 import Dashboard from "./pages/Dashboard";
 import CreateUser from "./pages/CreateUser";
 import { logoutUser, refreshToken } from "../API/LoginAPI";
+import BulkMessage from "./pages/BulkMessage";
+import CampaignHistory from "./pages/CampaignHistory";
+import CampaignDetail from "./pages/CampaignDetail";
 
 export default function App() {
   const [role, setRole] = useState(null);
@@ -44,10 +47,16 @@ export default function App() {
               path="/"
               element={<Dashboard role={role} onLogout={handleLogout} />}
             />
+            <Route
+              path="/bulk-message"
+              element={<BulkMessage />}
+            />
 
             {(role === "admin" || role === "superadmin") && (
               <Route path="/create-user" element={<CreateUser />} />
             )}
+            <Route path="/campaign-history" element={<CampaignHistory />} />
+            <Route path="/campaign-detail" element={<CampaignDetail />} />
 
             <Route path="*" element={<Navigate to="/" />} />
           </>

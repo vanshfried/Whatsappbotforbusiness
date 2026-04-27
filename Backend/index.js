@@ -5,6 +5,8 @@ import dotenv from "dotenv";
 import authRoutes from "./LoginAuth/Login.js"; // your login file
 import { pool } from "./db.js";
 import createUserRoutes from "./routes/admin/createUser.js";
+import sendBulkRoutes from "./routes/bulk.js";
+import webhookRoutes from "./routes/webhook.js";
 dotenv.config();
 
 const app = express();
@@ -24,6 +26,8 @@ app.use(
 // 📌 Routes
 app.use("/auth", authRoutes);
 app.use("/createuser", createUserRoutes);
+app.use("/bulk", sendBulkRoutes);
+app.use("/webhook", webhookRoutes);
 // 🧪 Test route
 app.get("/", (req, res) => {
   res.send("API running");
