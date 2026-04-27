@@ -1,17 +1,22 @@
 import { useState } from "react";
 import { apiFetch } from "../../API/api";
+import styles from "./styles/CreateUser.module.css";
 
-export default function CreateUser() {
+export default function CreateUser({ currentRole }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("support");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const normalizedRole = currentRole?.toLowerCase();
 
   const handleCreate = async (e) => {
     e.preventDefault();
     setError("");
     setMessage("");
+    setLoading(true);
 
     try {
       const res = await apiFetch("/createuser", {
@@ -19,59 +24,74 @@ export default function CreateUser() {
         body: JSON.stringify({ email, password, role }),
       });
 
-      setMessage(res.message);
+      setMessage(res.message || "User created ✅");
       setEmail("");
       setPassword("");
+      setRole("support");
     } catch (err) {
-      setError(err.message);
+      setError(
+        err?.response?.error ||
+        err?.error ||
+        err?.message ||
+        "Failed to create user ❌"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div style={styles.container}>
-      <form onSubmit={handleCreate} style={styles.card}>
-        <h2>Create User</h2>
+    <div className={styles.page}>
+      <form onSubmit={handleCreate} className={styles.card}>
+        <h2 className={styles.title}>Create User</h2>
 
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+        <div className={styles.field}>
+          <label>Email</label>
+          <input
+            type="email"
+            placeholder="Enter email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+        <div className={styles.field}>
+          <label>Password</label>
+          <input
+            type="password"
+            placeholder="Enter password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
 
-        <select value={role} onChange={(e) => setRole(e.target.value)}>
-          <option value="support">Support</option>
-          <option value="admin">Admin</option>
-        </select>
+        <div className={styles.field}>
+          <label>Role</label>
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+          >
+            <option value="support">Support</option>
 
-        <button type="submit">Create</button>
+            {normalizedRole === "superadmin" && (
+              <option value="admin">Admin</option>
+            )}
+          </select>
+        </div>
 
-        {message && <p style={{ color: "green" }}>{message}</p>}
-        {error && <p style={{ color: "red" }}>{error}</p>}
+        <button
+          type="submit"
+          className={styles.primary}
+          disabled={loading}
+        >
+          {loading ? "Creating..." : "Create User"}
+        </button>
+
+        {message && <div className={styles.success}>{message}</div>}
+        {error && <div className={styles.error}>{error}</div>}
       </form>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    display: "flex",
-    justifyContent: "center",
-    marginTop: "50px",
-  },
-  card: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-    width: "300px",
-  },
-};

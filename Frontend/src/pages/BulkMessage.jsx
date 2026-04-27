@@ -1,5 +1,5 @@
 import { useState } from "react";
-import "./bulkMessage.css";
+import styles from "./styles/bulkMessage.module.css";
 
 export default function BulkMessage() {
   const [numbers, setNumbers] = useState("");
@@ -62,37 +62,37 @@ export default function BulkMessage() {
   const parsed = normalizeNumbers(numbers);
 
   return (
-    <div className="wa-page">
-
+    <div className={styles.page}>
       {/* HEADER */}
-      <div className="wa-header">
-        <span>←</span>
+      <div className={styles.header}>
+        <span className={styles.back}>←</span>
         <div>
-          <div className="title">New Broadcast</div>
-          <div className="subtitle">{parsed.length} recipients</div>
+          <div className={styles.title}>New Broadcast</div>
+          <div className={styles.subtitle}>
+            {parsed.length} recipients
+          </div>
         </div>
       </div>
 
       {/* CONTENT */}
-      <div className="wa-content">
-
-        <div className="wa-field">
+      <div className={styles.content}>
+        <div className={styles.field}>
           <label>Recipients</label>
           <textarea
             value={numbers}
             onChange={(e) => setNumbers(e.target.value)}
             placeholder="Paste numbers..."
           />
-          <div className="wa-meta">
+          <div className={styles.meta}>
             <span>{parsed.length} valid</span>
-            <label className="csv">
+            <label className={styles.csv}>
               + CSV
               <input type="file" accept=".csv" onChange={handleCSV} hidden />
             </label>
           </div>
         </div>
 
-        <div className="wa-field">
+        <div className={styles.field}>
           <label>Template</label>
           <input
             value={template}
@@ -100,7 +100,7 @@ export default function BulkMessage() {
           />
         </div>
 
-        <div className="wa-field">
+        <div className={styles.field}>
           <label>Campaign</label>
           <input
             value={name}
@@ -108,7 +108,7 @@ export default function BulkMessage() {
           />
         </div>
 
-        <div className="wa-field">
+        <div className={styles.field}>
           <label>Schedule</label>
           <input
             type="datetime-local"
@@ -117,17 +117,20 @@ export default function BulkMessage() {
           />
         </div>
 
-        {message && <div className="wa-success">{message}</div>}
+        {message && <div className={styles.success}>{message}</div>}
       </div>
 
-      {/* FOOTER ACTIONS */}
-      <div className="wa-footer">
+      {/* FOOTER */}
+      <div className={styles.footer}>
         <button onClick={handleSchedule}>Schedule</button>
-        <button className="primary" onClick={handleSend} disabled={loading}>
+        <button
+          className={styles.primary}
+          onClick={handleSend}
+          disabled={loading}
+        >
           {loading ? "Sending..." : "Send"}
         </button>
       </div>
-
     </div>
   );
 }

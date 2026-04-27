@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import "./bulkMessage.css";
+import styles from "./styles/CampaignDetail.module.css";
 
 export default function CampaignDetail({ id, onBack }) {
   const [campaign, setCampaign] = useState(null);
@@ -11,71 +11,71 @@ export default function CampaignDetail({ id, onBack }) {
       .then(setCampaign);
   }, [id, API]);
 
-  if (!campaign) return <div className="wa-page">Loading...</div>;
+  if (!campaign) return <div className={styles.page}>Loading...</div>;
 
   return (
-    <div className="wa-page">
-
+    <div className={styles.page}>
       {/* HEADER */}
-      <div className="wa-header">
-        <span onClick={onBack}>←</span>
+      <div className={styles.header}>
+        <span className={styles.back} onClick={onBack}>←</span>
         <div>
-          <div className="title">{campaign.name}</div>
-          <div className="subtitle">
+          <div className={styles.title}>{campaign.name}</div>
+          <div className={styles.subtitle}>
             {campaign.results.length} recipients
           </div>
         </div>
       </div>
 
-      {/* TEMPLATE PREVIEW */}
-      <div className="wa-content">
-        <div className="wa-field">
+      {/* CONTENT */}
+      <div className={styles.content}>
+        {/* TEMPLATE */}
+        <div className={styles.field}>
           <label>Template</label>
-          <div className="template-preview">
+          <div className={styles.templatePreview}>
             {campaign.template}
           </div>
         </div>
 
-        {/* TABLE */}
-        <div className="results-table">
-
+        {/* RESULTS */}
+        <div className={styles.resultsTable}>
           {campaign.results.map((r, i) => (
-            <div key={i} className="result-row">
+            <div key={i} className={styles.resultRow}>
+              
+              <div className={`${styles.col} ${styles.number}`}>
+                {r.number}
+              </div>
 
-              <div className="col number">{r.number}</div>
-
-              <div className="col">
+              <div className={styles.col}>
                 <small>Sent</small>
                 {r.sentAt && new Date(r.sentAt).toLocaleTimeString()}
               </div>
 
-              <div className="col">
+              <div className={styles.col}>
                 <small>Delivered</small>
                 {r.deliveredAt
                   ? new Date(r.deliveredAt).toLocaleTimeString()
                   : "-"}
               </div>
 
-              <div className="col">
+              <div className={styles.col}>
                 <small>Read</small>
                 {r.readAt
                   ? new Date(r.readAt).toLocaleTimeString()
                   : "-"}
               </div>
 
-              <div className="col reply">
+              <div className={`${styles.col} ${styles.reply}`}>
                 <small>First Reply</small>
                 {r.firstReply ? r.firstReply.text : "-"}
               </div>
 
-              <div className="col">
+              <div className={styles.col}>
                 <small>Replies</small>
                 {r.replyCount || 0}
               </div>
 
             </div>
           ))}
-
         </div>
       </div>
     </div>

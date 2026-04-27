@@ -47,14 +47,18 @@ export default function App() {
               path="/"
               element={<Dashboard role={role} onLogout={handleLogout} />}
             />
-            <Route
-              path="/bulk-message"
-              element={<BulkMessage />}
-            />
+            <Route path="/bulk-message" element={<BulkMessage />} />
 
-            {(role === "admin" || role === "superadmin") && (
-              <Route path="/create-user" element={<CreateUser />} />
-            )}
+            <Route
+              path="/create-user"
+              element={
+                role === "admin" || role === "superadmin" ? (
+                  <CreateUser currentRole={role} />
+                ) : (
+                  <Navigate to="/" />
+                )
+              }
+            />
             <Route path="/campaign-history" element={<CampaignHistory />} />
             <Route path="/campaign-detail" element={<CampaignDetail />} />
 

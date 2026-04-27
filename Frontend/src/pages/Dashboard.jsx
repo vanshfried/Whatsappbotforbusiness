@@ -1,43 +1,33 @@
 import { Link } from "react-router-dom";
+import styles from "./styles/Dashboard.module.css";
 
 export default function Dashboard({ role, onLogout }) {
   return (
-    <div style={{ display: "flex" }}>
+    <div className={styles.container}>
       {/* SIDEBAR */}
-      <div style={styles.sidebar}>
-        <h3>Panel</h3>
+      <aside className={styles.sidebar}>
+        <h3 className={styles.logo}>Panel</h3>
 
-        <Link to="/">Home</Link>
+        <nav className={styles.nav}>
+          <Link to="/" className={styles.link}>Home</Link>
 
-        {(role === "admin" || role === "superadmin") && (
-          <Link to="/create-user">Create User</Link>
-        )}
+          {(role === "admin" || role === "superadmin") && (
+            <Link to="/create-user" className={styles.link}>
+              Create User
+            </Link>
+          )}
+        </nav>
 
-        <button onClick={onLogout}>Logout</button>
-      </div>
+        <button className={styles.logout} onClick={onLogout}>
+          Logout
+        </button>
+      </aside>
 
       {/* MAIN */}
-      <div style={styles.main}>
+      <main className={styles.main}>
         <h2>Welcome 🎉</h2>
         <p>Your role: {role}</p>
-      </div>
+      </main>
     </div>
   );
 }
-
-const styles = {
-  sidebar: {
-    width: "200px",
-    padding: "20px",
-    background: "#111",
-    color: "#fff",
-    height: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  },
-  main: {
-    padding: "20px",
-    flex: 1,
-  },
-};

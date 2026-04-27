@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import "./bulkMessage.css";
+import styles from "./styles/CampaignHistory.module.css";
 
 export default function CampaignHistory({ onOpen }) {
   const [campaigns, setCampaigns] = useState([]);
@@ -12,43 +12,44 @@ export default function CampaignHistory({ onOpen }) {
   }, [API]);
 
   return (
-    <div className="wa-page">
-
+    <div className={styles.page}>
       {/* HEADER */}
-      <div className="wa-header">
+      <div className={styles.header}>
         <div>
-          <div className="title">Campaigns</div>
-          <div className="subtitle">{campaigns.length} total</div>
+          <div className={styles.title}>Campaigns</div>
+          <div className={styles.subtitle}>
+            {campaigns.length} total
+          </div>
         </div>
       </div>
 
       {/* LIST */}
-      <div className="wa-content">
-
+      <div className={styles.content}>
         {campaigns.map((c) => (
           <div
             key={c.id}
-            className="campaign-card"
+            className={styles.card}
             onClick={() => onOpen(c.id)}
           >
-            <div className="row">
+            <div className={styles.row}>
               <strong>{c.name}</strong>
-              <span className="status">{c.status}</span>
+              <span className={styles.status}>{c.status}</span>
             </div>
 
-            <div className="row small">
+            <div className={`${styles.row} ${styles.small}`}>
               <span>{c.stats.sent} sent</span>
               <span>{c.stats.deliveryRate}% delivered</span>
               <span>{c.stats.readRate}% read</span>
             </div>
 
-            <div className="row small">
+            <div className={`${styles.row} ${styles.small}`}>
               <span>{c.stats.replies} replies</span>
-              <span>{new Date(c.createdAt).toLocaleString()}</span>
+              <span>
+                {new Date(c.createdAt).toLocaleString()}
+              </span>
             </div>
           </div>
         ))}
-
       </div>
     </div>
   );
