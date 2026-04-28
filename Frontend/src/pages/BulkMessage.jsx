@@ -36,6 +36,7 @@ export default function BulkMessage() {
     try {
       const res = await fetch(`${API}/bulk/send`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ numbers, template, name }),
       });
@@ -71,6 +72,7 @@ export default function BulkMessage() {
     try {
       const res = await fetch(`${API}/bulk/schedule`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ numbers, template, name, scheduleAt }),
       });

@@ -7,7 +7,6 @@ export default function CampaignHistory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const API = import.meta.env.VITE_BACKEND_URL;
 
   // ✅ memoized function (fixes dependency issue)
   const fetchData = useCallback(async () => {
@@ -22,7 +21,7 @@ export default function CampaignHistory() {
     } finally {
       setLoading(false);
     }
-  }, [API]);
+  }, []);
 
   useEffect(() => {
     const run = async () => {
