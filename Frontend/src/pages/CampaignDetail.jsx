@@ -38,7 +38,9 @@ export default function CampaignDetail() {
     <div className={styles.page}>
       {/* HEADER */}
       <div className={styles.header}>
-        <span className={styles.back} onClick={() => navigate(-1)}>←</span>
+        <span className={styles.back} onClick={() => navigate(-1)}>
+          ←
+        </span>
         <div>
           <div className={styles.title}>{campaign.name}</div>
           <div className={styles.subtitle}>
@@ -52,16 +54,13 @@ export default function CampaignDetail() {
         {/* TEMPLATE */}
         <div className={styles.field}>
           <label>Template</label>
-          <div className={styles.templatePreview}>
-            {campaign.template}
-          </div>
+          <div className={styles.templatePreview}>{campaign.template}</div>
         </div>
 
         {/* RESULTS */}
         <div className={styles.resultsTable}>
           {campaign.results.map((r) => (
             <div key={r.id} className={styles.resultRow}>
-              
               <div className={`${styles.col} ${styles.number}`}>
                 {r.phone_number}
               </div>
@@ -73,9 +72,7 @@ export default function CampaignDetail() {
 
               <div className={styles.col}>
                 <small>Sent</small>
-                {r.sent_at
-                  ? new Date(r.sent_at).toLocaleTimeString()
-                  : "-"}
+                {r.sent_at ? new Date(r.sent_at).toLocaleTimeString() : "-"}
               </div>
 
               <div className={styles.col}>
@@ -87,21 +84,22 @@ export default function CampaignDetail() {
 
               <div className={styles.col}>
                 <small>Read</small>
-                {r.read_at
-                  ? new Date(r.read_at).toLocaleTimeString()
-                  : "-"}
+                {r.read_at ? new Date(r.read_at).toLocaleTimeString() : "-"}
               </div>
 
               <div className={`${styles.col} ${styles.reply}`}>
                 <small>First Reply</small>
-                {r.first_reply_text || "-"}
+                {r.first_reply_text ? (
+                  <>
+                    <div>{r.first_reply_text}</div>
+                    <span className={styles.replyTime}>
+                      {new Date(r.first_reply_time).toLocaleTimeString()}
+                    </span>
+                  </>
+                ) : (
+                  "-"
+                )}
               </div>
-
-              <div className={styles.col}>
-                <small>Replies</small>
-                {r.reply_count || 0}
-              </div>
-
             </div>
           ))}
         </div>

@@ -31,12 +31,7 @@ const runCampaign = async (campaignId, numbers, template) => {
         `INSERT INTO campaign_messages 
         (campaign_id, phone_number, message_id, status, sent_at)
         VALUES ($1, $2, $3, $4, NOW())`,
-        [
-          campaignId,
-          number,
-          messageId || null,
-          messageId ? "sent" : "failed",
-        ]
+        [campaignId, number, messageId || null, messageId ? "sent" : "failed"],
       );
 
       // ✅ store tracking
@@ -45,7 +40,7 @@ const runCampaign = async (campaignId, numbers, template) => {
           `INSERT INTO message_tracking 
           (message_id, campaign_id, phone_number, status)
           VALUES ($1, $2, $3, $4)`,
-          [messageId, campaignId, number, "sent"]
+          [messageId, campaignId, number, "sent"],
         );
       }
     } catch (err) {
@@ -55,7 +50,7 @@ const runCampaign = async (campaignId, numbers, template) => {
         `INSERT INTO campaign_messages 
         (campaign_id, phone_number, status, sent_at)
         VALUES ($1, $2, 'failed', NOW())`,
-        [campaignId, number]
+        [campaignId, number],
       );
     }
 
@@ -64,10 +59,9 @@ const runCampaign = async (campaignId, numbers, template) => {
   }
 
   // ✅ mark campaign completed
-  await pool.query(
-    `UPDATE campaigns SET status = 'completed' WHERE id = $1`,
-    [campaignId]
-  );
+  await pool.query(`UPDATE campaigns SET status = 'completed' WHERE id = $1`, [
+    campaignId,
+  ]);
 
   console.log(`✅ Campaign completed: ${campaignId}`);
 };
@@ -90,7 +84,7 @@ router.post("/send", async (req, res) => {
       `INSERT INTO campaigns (name, template, status)
        VALUES ($1, $2, 'running')
        RETURNING id`,
-      [name || "Instant Campaign", template]
+      [name || "Instant Campaign", template],
     );
 
     const campaignId = result.rows[0].id;
@@ -133,16 +127,15 @@ router.post("/schedule", async (req, res) => {
       `INSERT INTO campaigns (name, template, status, scheduled_at)
        VALUES ($1, $2, 'scheduled', $3)
        RETURNING id`,
-      [name || "Scheduled Campaign", template, scheduleAt]
+      [name || "Scheduled Campaign", template, scheduleAt],
     );
 
     const campaignId = result.rows[0].id;
 
     setTimeout(() => {
-      pool.query(
-        `UPDATE campaigns SET status = 'running' WHERE id = $1`,
-        [campaignId]
-      );
+      pool.query(`UPDATE campaigns SET status = 'running' WHERE id = $1`, [
+        campaignId,
+      ]);
 
       runCampaign(campaignId, list, template);
     }, delay);
@@ -173,19 +166,35 @@ router.get("/history", async (req, res) => {
     for (const c of campaigns.rows) {
       const messages = await pool.query(
         `SELECT * FROM campaign_messages WHERE campaign_id = $1`,
-        [c.id]
+        [c.id],
       );
 
-      let sent = messages.rows.length;
+      let sent = 0;
       let delivered = 0;
       let read = 0;
       let replies = 0;
 
       for (const m of messages.rows) {
-        if (m.status === "delivered") delivered++;
-        if (m.status === "read") read++;
+        // ✅ sent
+        if (m.sent_at) sent++;
+
+        // ✅ delivered (delivered OR read)
+        if (m.delivered_at || m.read_at) delivered++;
+
+        // ✅ read
+        if (m.read_at) read++;
+
+        // ✅ replies
         if (m.reply_count > 0) replies++;
       }
+
+      const deliveryRate = sent ? ((delivered / sent) * 100).toFixed(1) : "0";
+
+      const readRate = sent ? ((read / sent) * 100).toFixed(1) : "0";
+
+      // ✅ new flags (VERY useful for UI)
+      const allDelivered = sent > 0 && delivered === sent;
+      const allRead = sent > 0 && read === sent;
 
       data.push({
         id: c.id,
@@ -199,8 +208,10 @@ router.get("/history", async (req, res) => {
           delivered,
           read,
           replies,
-          deliveryRate: sent ? ((delivered / sent) * 100).toFixed(1) : "0",
-          readRate: sent ? ((read / sent) * 100).toFixed(1) : "0",
+          deliveryRate,
+          readRate,
+          allDelivered,
+          allRead,
         },
 
         results: messages.rows,
@@ -224,10 +235,9 @@ router.get("/:id", async (req, res) => {
   const id = Number(req.params.id);
 
   try {
-    const campaign = await pool.query(
-      `SELECT * FROM campaigns WHERE id = $1`,
-      [id]
-    );
+    const campaign = await pool.query(`SELECT * FROM campaigns WHERE id = $1`, [
+      id,
+    ]);
 
     if (campaign.rows.length === 0) {
       return res.status(404).json({ error: "Campaign not found" });
@@ -235,7 +245,7 @@ router.get("/:id", async (req, res) => {
 
     const messages = await pool.query(
       `SELECT * FROM campaign_messages WHERE campaign_id = $1`,
-      [id]
+      [id],
     );
 
     res.json({

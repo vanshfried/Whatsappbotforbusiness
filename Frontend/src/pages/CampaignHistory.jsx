@@ -71,8 +71,8 @@ export default function CampaignHistory() {
 
             <div className={`${styles.row} ${styles.small}`}>
               <span>{c.stats.sent} sent</span>
-              <span>{c.stats.deliveryRate}% delivered</span>
-              <span>{c.stats.readRate}% read</span>
+              <span>{c.stats.allDelivered ? "✅ All delivered" : "⏳ Sending"}</span>
+              <span>{c.stats.allRead ? "All read" : ""}</span>
             </div>
 
             <div className={`${styles.row} ${styles.small}`}>

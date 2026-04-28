@@ -101,6 +101,11 @@
 
 .reply {
   word-break: break-word;
+  font-size: 14px;
+}
+.replyTime {
+  color: #888;
+  font-size: 13px;
 }
 
 /* 📱 MOBILE */
