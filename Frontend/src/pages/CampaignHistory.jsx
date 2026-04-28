@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import styles from "./styles/CampaignHistory.module.css";
 import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../../API/API"; // adjust path if needed
 export default function CampaignHistory() {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,10 +12,8 @@ export default function CampaignHistory() {
   // ✅ memoized function (fixes dependency issue)
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/bulk/history`);
-      const data = await res.json();
+      const data = await apiFetch("/bulk/history");
 
-      if (!res.ok) throw new Error(data.error || "Failed");
 
       setCampaigns(data.campaigns || []);
       setError("");
@@ -61,7 +60,11 @@ export default function CampaignHistory() {
 
       <div className={styles.content}>
         {campaigns.map((c) => (
-          <div key={c.id} className={styles.card} onClick={() => navigate(`/campaign/${c.id}`)}>
+          <div
+            key={c.id}
+            className={styles.card}
+            onClick={() => navigate(`/campaign/${c.id}`)}
+          >
             <div className={styles.row}>
               <strong>{c.name}</strong>
               <span className={`${styles.status} ${getStatusClass(c.status)}`}>
@@ -71,7 +74,9 @@ export default function CampaignHistory() {
 
             <div className={`${styles.row} ${styles.small}`}>
               <span>{c.stats.sent} sent</span>
-              <span>{c.stats.allDelivered ? "✅ All delivered" : "⏳ Sending"}</span>
+              <span>
+                {c.stats.allDelivered ? "✅ All delivered" : "⏳ Sending"}
+              </span>
               <span>{c.stats.allRead ? "All read" : ""}</span>
             </div>
 

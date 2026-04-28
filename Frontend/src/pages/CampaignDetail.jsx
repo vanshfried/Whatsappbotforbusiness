@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import styles from "./styles/CampaignDetail.module.css";
 import { useParams, useNavigate } from "react-router-dom";
-
+import { apiFetch } from "../../API/API"; // adjust path if needed
 export default function CampaignDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -12,11 +12,7 @@ export default function CampaignDetail() {
   useEffect(() => {
     const fetchCampaign = async () => {
       try {
-        const res = await fetch(`${API}/bulk/${id}`);
-        const data = await res.json();
-
-        if (!res.ok) throw new Error(data.error || "Failed");
-
+        const data = await apiFetch(`/bulk/${id}`);
         setCampaign(data);
       } catch (err) {
         setError(err.message);

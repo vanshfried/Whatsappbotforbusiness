@@ -1,9 +1,9 @@
 import express from "express";
 import { sendTemplate } from "../whatsapp.js";
 import { pool } from "../db.js";
-
+import { requireAuth } from "../Middleware/authrequirements.js";
 const router = express.Router();
-
+router.use(requireAuth);
 /**
  * 🔢 Normalize numbers
  */
