@@ -1,23 +1,44 @@
 import { useEffect, useState } from "react";
 import styles from "./styles/CampaignDetail.module.css";
+import { useParams, useNavigate } from "react-router-dom";
 
-export default function CampaignDetail({ id, onBack }) {
+export default function CampaignDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
   const [campaign, setCampaign] = useState(null);
+  const [error, setError] = useState("");
   const API = import.meta.env.VITE_BACKEND_URL;
 
   useEffect(() => {
-    fetch(`${API}/bulk/${id}`)
-      .then((res) => res.json())
-      .then(setCampaign);
+    const fetchCampaign = async () => {
+      try {
+        const res = await fetch(`${API}/bulk/${id}`);
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || "Failed");
+
+        setCampaign(data);
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+
+    fetchCampaign();
   }, [id, API]);
 
-  if (!campaign) return <div className={styles.page}>Loading...</div>;
+  if (error) {
+    return <div className={styles.page}>❌ {error}</div>;
+  }
+
+  if (!campaign) {
+    return <div className={styles.page}>Loading...</div>;
+  }
 
   return (
     <div className={styles.page}>
       {/* HEADER */}
       <div className={styles.header}>
-        <span className={styles.back} onClick={onBack}>←</span>
+        <span className={styles.back} onClick={() => navigate(-1)}>←</span>
         <div>
           <div className={styles.title}>{campaign.name}</div>
           <div className={styles.subtitle}>
@@ -38,40 +59,47 @@ export default function CampaignDetail({ id, onBack }) {
 
         {/* RESULTS */}
         <div className={styles.resultsTable}>
-          {campaign.results.map((r, i) => (
-            <div key={i} className={styles.resultRow}>
+          {campaign.results.map((r) => (
+            <div key={r.id} className={styles.resultRow}>
               
               <div className={`${styles.col} ${styles.number}`}>
-                {r.number}
+                {r.phone_number}
+              </div>
+
+              <div className={styles.col}>
+                <small>Status</small>
+                {r.status}
               </div>
 
               <div className={styles.col}>
                 <small>Sent</small>
-                {r.sentAt && new Date(r.sentAt).toLocaleTimeString()}
+                {r.sent_at
+                  ? new Date(r.sent_at).toLocaleTimeString()
+                  : "-"}
               </div>
 
               <div className={styles.col}>
                 <small>Delivered</small>
-                {r.deliveredAt
-                  ? new Date(r.deliveredAt).toLocaleTimeString()
+                {r.delivered_at
+                  ? new Date(r.delivered_at).toLocaleTimeString()
                   : "-"}
               </div>
 
               <div className={styles.col}>
                 <small>Read</small>
-                {r.readAt
-                  ? new Date(r.readAt).toLocaleTimeString()
+                {r.read_at
+                  ? new Date(r.read_at).toLocaleTimeString()
                   : "-"}
               </div>
 
               <div className={`${styles.col} ${styles.reply}`}>
                 <small>First Reply</small>
-                {r.firstReply ? r.firstReply.text : "-"}
+                {r.first_reply_text || "-"}
               </div>
 
               <div className={styles.col}>
                 <small>Replies</small>
-                {r.replyCount || 0}
+                {r.reply_count || 0}
               </div>
 
             </div>

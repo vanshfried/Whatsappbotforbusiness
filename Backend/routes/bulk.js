@@ -1,18 +1,8 @@
 import express from "express";
 import { sendTemplate } from "../whatsapp.js";
+import { pool } from "../db.js";
 
 const router = express.Router();
-
-/**
- * 🧠 TEMP STORAGE (no DB)
- */
-const campaigns = [];
-
-/**
- * 🌍 GLOBAL stores
- */
-global.messageStore = global.messageStore || {};
-global.numberToCampaign = global.numberToCampaign || {};
 
 /**
  * 🔢 Normalize numbers
@@ -27,57 +17,59 @@ const normalizeNumbers = (input) => {
 };
 
 /**
- * 🚀 CORE SENDER FUNCTION
+ * 🚀 CORE SENDER FUNCTION (DB VERSION)
  */
-const runCampaign = async (campaign) => {
-  console.log(`🚀 Running campaign: ${campaign.name}`);
+const runCampaign = async (campaignId, numbers, template) => {
+  console.log(`🚀 Running campaign: ${campaignId}`);
 
-  for (const number of campaign.numbers) {
+  for (const number of numbers) {
     try {
-      const messageId = await sendTemplate(number, campaign.template);
+      const messageId = await sendTemplate(number, template);
 
-      const result = {
-        number,
-        status: messageId ? "sent" : "failed",
-        messageId: messageId || null,
-
-        // 📊 tracking fields
-        sentAt: new Date(),
-        deliveredAt: null,
-        readAt: null,
-
-        firstReply: null,
-        replyCount: 0,
-      };
-
-      campaign.results.push(result);
-
-      // ✅ store messageId for webhook tracking
-      if (messageId) {
-        global.messageStore[messageId] = {
+      // ✅ insert message row
+      await pool.query(
+        `INSERT INTO campaign_messages 
+        (campaign_id, phone_number, message_id, status, sent_at)
+        VALUES ($1, $2, $3, $4, NOW())`,
+        [
+          campaignId,
           number,
-          campaignId: campaign.id,
-          status: "sent",
-        };
+          messageId || null,
+          messageId ? "sent" : "failed",
+        ]
+      );
 
-        // 🔁 reverse mapping (for replies)
-        global.numberToCampaign[number] = campaign.id;
+      // ✅ store tracking
+      if (messageId) {
+        await pool.query(
+          `INSERT INTO message_tracking 
+          (message_id, campaign_id, phone_number, status)
+          VALUES ($1, $2, $3, $4)`,
+          [messageId, campaignId, number, "sent"]
+        );
       }
     } catch (err) {
-      campaign.results.push({
-        number,
-        status: "failed",
-        error: err.message,
-        sentAt: new Date(),
-      });
+      console.error("Send error:", err.message);
+
+      await pool.query(
+        `INSERT INTO campaign_messages 
+        (campaign_id, phone_number, status, sent_at)
+        VALUES ($1, $2, 'failed', NOW())`,
+        [campaignId, number]
+      );
     }
 
-    // 🔥 delay (Meta rate limit safety)
+    // ⏱ rate limit safety
     await new Promise((r) => setTimeout(r, 200));
   }
 
-  campaign.status = "completed";
-  console.log(`✅ Campaign completed: ${campaign.name}`);
+  // ✅ mark campaign completed
+  await pool.query(
+    `UPDATE campaigns SET status = 'completed' WHERE id = $1`,
+    [campaignId]
+  );
+
+  console.log(`✅ Campaign completed: ${campaignId}`);
 };
 
 /**
@@ -92,32 +84,35 @@ router.post("/send", async (req, res) => {
     return res.status(400).json({ error: "No valid numbers" });
   }
 
-  const campaign = {
-    id: Date.now(),
-    name: name || "Instant Campaign",
-    template,
-    numbers: list,
-    status: "running",
-    results: [],
-    createdAt: new Date(),
-  };
+  try {
+    // ✅ create campaign
+    const result = await pool.query(
+      `INSERT INTO campaigns (name, template, status)
+       VALUES ($1, $2, 'running')
+       RETURNING id`,
+      [name || "Instant Campaign", template]
+    );
 
-  campaigns.push(campaign);
+    const campaignId = result.rows[0].id;
 
-  // 🚀 async run
-  runCampaign(campaign);
+    // 🚀 run async
+    runCampaign(campaignId, list, template);
 
-  res.json({
-    success: true,
-    message: "Campaign started",
-    campaignId: campaign.id,
-  });
+    res.json({
+      success: true,
+      message: "Campaign started",
+      campaignId,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
 /**
  * ⏰ SCHEDULE CAMPAIGN
  */
-router.post("/schedule", (req, res) => {
+router.post("/schedule", async (req, res) => {
   const { numbers, template, name, scheduleAt } = req.body;
 
   const list = normalizeNumbers(numbers);
@@ -132,93 +127,125 @@ router.post("/schedule", (req, res) => {
     return res.status(400).json({ error: "Invalid schedule time" });
   }
 
-  const campaign = {
-    id: Date.now(),
-    name: name || "Scheduled Campaign",
-    template,
-    numbers: list,
-    status: "scheduled",
-    results: [],
-    createdAt: new Date(),
-    scheduleAt,
-  };
+  try {
+    // ✅ create campaign
+    const result = await pool.query(
+      `INSERT INTO campaigns (name, template, status, scheduled_at)
+       VALUES ($1, $2, 'scheduled', $3)
+       RETURNING id`,
+      [name || "Scheduled Campaign", template, scheduleAt]
+    );
 
-  campaigns.push(campaign);
+    const campaignId = result.rows[0].id;
 
-  setTimeout(() => {
-    campaign.status = "running";
-    runCampaign(campaign);
-  }, delay);
+    setTimeout(() => {
+      pool.query(
+        `UPDATE campaigns SET status = 'running' WHERE id = $1`,
+        [campaignId]
+      );
 
-  res.json({
-    success: true,
-    message: "Campaign scheduled",
-    runInMs: delay,
-    campaignId: campaign.id,
-  });
+      runCampaign(campaignId, list, template);
+    }, delay);
+
+    res.json({
+      success: true,
+      message: "Campaign scheduled",
+      runInMs: delay,
+      campaignId,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
 /**
- * 📊 HISTORY (ENRICHED + STATS)
+ * 📊 HISTORY (DB VERSION)
  */
-router.get("/history", (req, res) => {
-  const enrichedCampaigns = campaigns.map((campaign) => {
-    let sent = campaign.results.length;
-    let delivered = 0;
-    let read = 0;
-    let replies = 0;
+router.get("/history", async (req, res) => {
+  try {
+    const campaigns = await pool.query(`
+      SELECT * FROM campaigns ORDER BY created_at DESC
+    `);
 
-    const updatedResults = campaign.results.map((r) => {
-      if (r.messageId && global.messageStore[r.messageId]) {
-        r.liveStatus = global.messageStore[r.messageId].status;
+    const data = [];
+
+    for (const c of campaigns.rows) {
+      const messages = await pool.query(
+        `SELECT * FROM campaign_messages WHERE campaign_id = $1`,
+        [c.id]
+      );
+
+      let sent = messages.rows.length;
+      let delivered = 0;
+      let read = 0;
+      let replies = 0;
+
+      for (const m of messages.rows) {
+        if (m.status === "delivered") delivered++;
+        if (m.status === "read") read++;
+        if (m.reply_count > 0) replies++;
       }
 
-      if (r.liveStatus === "delivered") delivered++;
-      if (r.liveStatus === "read") read++;
-      if (r.replyCount > 0) replies++;
+      data.push({
+        id: c.id,
+        name: c.name,
+        template: c.template,
+        createdAt: c.created_at,
+        status: c.status,
 
-      return r;
+        stats: {
+          sent,
+          delivered,
+          read,
+          replies,
+          deliveryRate: sent ? ((delivered / sent) * 100).toFixed(1) : "0",
+          readRate: sent ? ((read / sent) * 100).toFixed(1) : "0",
+        },
+
+        results: messages.rows,
+      });
+    }
+
+    res.json({
+      total: data.length,
+      campaigns: data,
     });
-
-    return {
-      id: campaign.id,
-      name: campaign.name,
-      template: campaign.template,
-      createdAt: campaign.createdAt,
-      status: campaign.status,
-
-      stats: {
-        sent,
-        delivered,
-        read,
-        replies,
-        deliveryRate: sent ? ((delivered / sent) * 100).toFixed(1) : "0",
-        readRate: sent ? ((read / sent) * 100).toFixed(1) : "0",
-      },
-
-      results: updatedResults,
-    };
-  });
-
-  res.json({
-    total: campaigns.length,
-    campaigns: enrichedCampaigns,
-  });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
 /**
- * 🔍 SINGLE CAMPAIGN (for detail page)
+ * 🔍 SINGLE CAMPAIGN
  */
-router.get("/:id", (req, res) => {
+router.get("/:id", async (req, res) => {
   const id = Number(req.params.id);
 
-  const campaign = campaigns.find((c) => c.id === id);
+  try {
+    const campaign = await pool.query(
+      `SELECT * FROM campaigns WHERE id = $1`,
+      [id]
+    );
 
-  if (!campaign) {
-    return res.status(404).json({ error: "Campaign not found" });
+    if (campaign.rows.length === 0) {
+      return res.status(404).json({ error: "Campaign not found" });
+    }
+
+    const messages = await pool.query(
+      `SELECT * FROM campaign_messages WHERE campaign_id = $1`,
+      [id]
+    );
+
+    res.json({
+      ...campaign.rows[0],
+      results: messages.rows,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
-
-  res.json(campaign);
 });
 
 export default router;

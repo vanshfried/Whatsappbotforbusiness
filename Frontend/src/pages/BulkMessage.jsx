@@ -33,30 +33,61 @@ export default function BulkMessage() {
     setLoading(true);
     setMessage("");
 
-    await fetch(`${API}/bulk/send`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ numbers, template, name }),
-    });
+    try {
+      const res = await fetch(`${API}/bulk/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ numbers, template, name }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || "Failed to send");
+
+      setMessage(`Campaign started 🚀 (ID: ${data.campaignId})`);
+
+      setNumbers("");
+      setName("");
+      setScheduleAt("");
+
+      // optional: redirect later
+      // onOpen(data.campaignId);
+    } catch (err) {
+      setMessage("❌ " + err.message);
+    }
 
     setLoading(false);
-    setMessage("Sent ✅");
   };
 
   const handleSchedule = async () => {
-    if (!scheduleAt) return alert("Pick schedule time");
+    if (!scheduleAt) {
+      setMessage("❌ Please pick schedule time");
+      return;
+    }
 
     setLoading(true);
     setMessage("");
 
-    await fetch(`${API}/bulk/schedule`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ numbers, template, name, scheduleAt }),
-    });
+    try {
+      const res = await fetch(`${API}/bulk/schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ numbers, template, name, scheduleAt }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || "Failed to schedule");
+
+      setMessage(`Scheduled ⏰ (ID: ${data.campaignId})`);
+      setNumbers("");
+      setName("");
+      setScheduleAt("");
+    } catch (err) {
+      setMessage("❌ " + err.message);
+    }
 
     setLoading(false);
-    setMessage("Scheduled ⏰");
   };
 
   const parsed = normalizeNumbers(numbers);
@@ -64,7 +95,6 @@ export default function BulkMessage() {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        
         {/* HEADER INSIDE CARD */}
         <div className={styles.cardHeader}>
           <div>
@@ -104,10 +134,7 @@ export default function BulkMessage() {
 
             <div className={styles.section}>
               <label>Campaign</label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
+              <input value={name} onChange={(e) => setName(e.target.value)} />
             </div>
           </div>
 
@@ -126,19 +153,22 @@ export default function BulkMessage() {
 
         {/* FOOTER */}
         <div className={styles.footer}>
-          <button className={styles.secondary} onClick={handleSchedule}>
+          <button
+            className={styles.secondary}
+            onClick={handleSchedule}
+            disabled={loading || parsed.length === 0}
+          >
             Schedule
           </button>
 
           <button
             className={styles.primary}
             onClick={handleSend}
-            disabled={loading}
+            disabled={loading || parsed.length === 0}
           >
             {loading ? "Sending..." : "Send"}
           </button>
         </div>
-
       </div>
     </div>
   );

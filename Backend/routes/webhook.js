@@ -1,8 +1,9 @@
 import express from "express";
+import { pool } from "../db.js";
 
 const router = express.Router();
 
-// 🔐 VERIFY WEBHOOK (Meta requirement)
+// 🔐 VERIFY WEBHOOK
 router.get("/", (req, res) => {
   const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
 
@@ -19,14 +20,14 @@ router.get("/", (req, res) => {
 });
 
 // 📩 RECEIVE EVENTS
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const entry = req.body.entry?.[0];
     const changes = entry?.changes?.[0];
     const value = changes?.value;
 
     /**
-     * 📊 STATUS UPDATES (sent/delivered/read)
+     * 📊 STATUS UPDATES
      */
     const statuses = value?.statuses;
 
@@ -37,29 +38,33 @@ router.post("/", (req, res) => {
 
         console.log(`📊 ${messageId} → ${statusValue}`);
 
-        if (global.messageStore?.[messageId]) {
-          const msg = global.messageStore[messageId];
-          msg.status = statusValue;
+        // ✅ update tracking table
+        await pool.query(
+          `UPDATE message_tracking 
+           SET status = $1 
+           WHERE message_id = $2`,
+          [statusValue, messageId]
+        );
 
-          // 🔍 find campaign
-          const campaign = global.campaigns?.find(
-            (c) => c.id === msg.campaignId
+        // ✅ update campaign_messages
+        if (statusValue === "delivered") {
+          await pool.query(
+            `UPDATE campaign_messages
+             SET status = 'delivered',
+                 delivered_at = NOW()
+             WHERE message_id = $1`,
+            [messageId]
           );
-          if (!campaign) continue;
+        }
 
-          const result = campaign.results.find(
-            (r) => r.messageId === messageId
+        if (statusValue === "read") {
+          await pool.query(
+            `UPDATE campaign_messages
+             SET status = 'read',
+                 read_at = NOW()
+             WHERE message_id = $1`,
+            [messageId]
           );
-          if (!result) continue;
-
-          // ⏱ timestamps
-          if (statusValue === "delivered" && !result.deliveredAt) {
-            result.deliveredAt = new Date();
-          }
-
-          if (statusValue === "read" && !result.readAt) {
-            result.readAt = new Date();
-          }
         }
       }
     }
@@ -76,28 +81,36 @@ router.post("/", (req, res) => {
 
         console.log(`💬 Reply from ${from}: ${text}`);
 
-        const campaignId = global.numberToCampaign?.[from];
-        if (!campaignId) continue;
-
-        const campaign = global.campaigns?.find(
-          (c) => c.id === campaignId
+        // 🔍 find latest campaign message for this number
+        const result = await pool.query(
+          `SELECT * FROM campaign_messages
+           WHERE phone_number = $1
+           ORDER BY sent_at DESC
+           LIMIT 1`,
+          [from]
         );
-        if (!campaign) continue;
 
-        const result = campaign.results.find(
-          (r) => r.number === from
-        );
-        if (!result) continue;
+        if (result.rows.length === 0) continue;
+
+        const message = result.rows[0];
 
         // 🔢 increase reply count
-        result.replyCount = (result.replyCount || 0) + 1;
+        await pool.query(
+          `UPDATE campaign_messages
+           SET reply_count = reply_count + 1
+           WHERE id = $1`,
+          [message.id]
+        );
 
         // 🥇 store ONLY first reply
-        if (!result.firstReply) {
-          result.firstReply = {
-            text,
-            time: new Date(),
-          };
+        if (!message.first_reply_text) {
+          await pool.query(
+            `UPDATE campaign_messages
+             SET first_reply_text = $1,
+                 first_reply_time = NOW()
+             WHERE id = $2`,
+            [text, message.id]
+          );
         }
       }
     }

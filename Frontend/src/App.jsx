@@ -58,7 +58,7 @@ export default function App() {
               }
             />
 
-            <Route path="/campaign-detail" element={<CampaignDetail />} />
+            <Route path="/campaign/:id" element={<CampaignDetail />} />
 
             <Route path="*" element={<Navigate to="/" />} />
           </Route>
