@@ -63,73 +63,82 @@ export default function BulkMessage() {
 
   return (
     <div className={styles.page}>
-      {/* HEADER */}
-      <div className={styles.header}>
-        <span className={styles.back}>←</span>
-        <div>
-          <div className={styles.title}>New Broadcast</div>
-          <div className={styles.subtitle}>
-            {parsed.length} recipients
-          </div>
-        </div>
-      </div>
-
-      {/* CONTENT */}
-      <div className={styles.content}>
-        <div className={styles.field}>
-          <label>Recipients</label>
-          <textarea
-            value={numbers}
-            onChange={(e) => setNumbers(e.target.value)}
-            placeholder="Paste numbers..."
-          />
-          <div className={styles.meta}>
-            <span>{parsed.length} valid</span>
-            <label className={styles.csv}>
-              + CSV
-              <input type="file" accept=".csv" onChange={handleCSV} hidden />
-            </label>
+      <div className={styles.container}>
+        
+        {/* HEADER INSIDE CARD */}
+        <div className={styles.cardHeader}>
+          <div>
+            <h2>New Broadcast</h2>
+            <span>{parsed.length} recipients</span>
           </div>
         </div>
 
-        <div className={styles.field}>
-          <label>Template</label>
-          <input
-            value={template}
-            onChange={(e) => setTemplate(e.target.value)}
-          />
+        {/* BODY */}
+        <div className={styles.body}>
+          {/* RECIPIENTS */}
+          <div className={styles.section}>
+            <label>Recipients</label>
+            <textarea
+              value={numbers}
+              onChange={(e) => setNumbers(e.target.value)}
+              placeholder="Paste numbers..."
+            />
+            <div className={styles.meta}>
+              <span>{parsed.length} valid</span>
+              <label className={styles.csv}>
+                + Upload CSV
+                <input type="file" accept=".csv" onChange={handleCSV} hidden />
+              </label>
+            </div>
+          </div>
+
+          {/* ROW */}
+          <div className={styles.row}>
+            <div className={styles.section}>
+              <label>Template</label>
+              <input
+                value={template}
+                onChange={(e) => setTemplate(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.section}>
+              <label>Campaign</label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* SCHEDULE */}
+          <div className={styles.section}>
+            <label>Schedule</label>
+            <input
+              type="datetime-local"
+              value={scheduleAt}
+              onChange={(e) => setScheduleAt(e.target.value)}
+            />
+          </div>
+
+          {message && <div className={styles.success}>{message}</div>}
         </div>
 
-        <div className={styles.field}>
-          <label>Campaign</label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
+        {/* FOOTER */}
+        <div className={styles.footer}>
+          <button className={styles.secondary} onClick={handleSchedule}>
+            Schedule
+          </button>
+
+          <button
+            className={styles.primary}
+            onClick={handleSend}
+            disabled={loading}
+          >
+            {loading ? "Sending..." : "Send"}
+          </button>
         </div>
 
-        <div className={styles.field}>
-          <label>Schedule</label>
-          <input
-            type="datetime-local"
-            value={scheduleAt}
-            onChange={(e) => setScheduleAt(e.target.value)}
-          />
-        </div>
-
-        {message && <div className={styles.success}>{message}</div>}
-      </div>
-
-      {/* FOOTER */}
-      <div className={styles.footer}>
-        <button onClick={handleSchedule}>Schedule</button>
-        <button
-          className={styles.primary}
-          onClick={handleSend}
-          disabled={loading}
-        >
-          {loading ? "Sending..." : "Send"}
-        </button>
       </div>
     </div>
   );

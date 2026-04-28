@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { loginUser } from "../../API/LoginAPI";
+import styles from "./Login.module.css";
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState("");
@@ -12,16 +13,16 @@ export default function Login({ onLogin }) {
 
     try {
       const data = await loginUser(email, password);
-      onLogin(data.role); // pass role to parent
+      onLogin(data.role);
     } catch (err) {
       setError(err.message);
     }
   };
 
   return (
-    <div style={styles.container}>
-      <form onSubmit={handleLogin} style={styles.card}>
-        <h2>Login</h2>
+    <div className={styles.container}>
+      <form onSubmit={handleLogin} className={styles.card}>
+        <h2 className={styles.title}>Welcome Back</h2>
 
         <input
           type="email"
@@ -29,7 +30,7 @@ export default function Login({ onLogin }) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          style={styles.input}
+          className={styles.input}
         />
 
         <input
@@ -38,43 +39,15 @@ export default function Login({ onLogin }) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          style={styles.input}
+          className={styles.input}
         />
 
-        <button type="submit" style={styles.button}>
+        <button type="submit" className={styles.button}>
           Login
         </button>
 
-        {error && <p style={styles.error}>{error}</p>}
+        {error && <p className={styles.error}>{error}</p>}
       </form>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    display: "flex",
-    height: "100vh",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  card: {
-    padding: "20px",
-    border: "1px solid #ccc",
-    borderRadius: "8px",
-    width: "300px",
-  },
-  input: {
-    width: "100%",
-    padding: "10px",
-    margin: "10px 0",
-  },
-  button: {
-    width: "100%",
-    padding: "10px",
-    cursor: "pointer",
-  },
-  error: {
-    color: "red",
-  },
-};
